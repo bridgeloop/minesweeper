@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<link rel="icon" href="about:favicon" />
+		<title>Minesweeper</title>
+		<script>var version = "0.0.0";</script>
+		<style>
+			@keyframes alert {
+				from {
+					transform: scale(0.95, 0.95);
+				}
+				70% {
+					transform: scale(1.02, 1.02);
+				}
+				to {
+					transform: scale(1, 1);
+				}
+			}
+			* {
+				box-sizing: border-box;
+			}
+			.gamemode {
+				border-radius: 0.4rem;
+				background: var(--settings-option-background);
+			}
+			.gamemode > div {
+				display: flex;
+			}
+			.gamemode > div > div:nth-child(1) {
+				flex: 1;
+				padding: 0.8rem;
+				border-right: solid 1px white;
+			}
+			.gamemode > div > div:nth-child(2) {
+				flex: 1;
+				padding: 0.8rem;
+				border-left: solid 1px white;
+			}
+			.gamemode > button {
+				border-top: solid 2px white;
+				border-radius: 0 0 0.4rem 0.4rem;
+			}
+			@font-face {
+				font-family: "PT Sans Caption";
+				font-style: normal;
+				font-weight: 700;
+				font-display: block;
+				src: url("./pt-sans-caption.woff2") format("woff2");
+				unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+			}
+			*:not(input):not(pre) {
+				-webkit-user-select: none;
+			}
+			h1, h2, h3, h4, h5, h6, .title {
+				margin: 0;
+				user-select: none;
+				line-height: 1;
+			}
+			h1 {
+				font-size: 2rem;
+			}
+			h2 {
+				font-size: 1.5rem;
+			}
+			h3 {
+				font-size: 1.18rem;
+			}
+			b, button {
+				font-size: 1.06rem;
+				font-weight: bold;
+			}
+			h4 {
+				font-size: 1.03rem;
+			}
+			h5 {
+				font-size: 1rem;
+			}
+			h6 {
+				font-size: 0.89rem;
+			}
+			h5 + div {
+				margin-top: 4px;
+			}
+			htitle {
+				font-size: 1.335em;
+				font-weight: bolder;
+			}
+			html {
+				height: 100%;
+				width: 100%;
+				-webkit-tap-highlight-color: #00000000;
+				background: #000000;
+			}
+			body {
+				margin: 0;
+				padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+				overflow: hidden;
+				height: 100%;
+				width: 100%;
+				color: white;
+				font-family: "PT Sans Caption", sans-serif;
+			}
+			.page {
+				height: 100%;
+				width: 100%;
+				background: var(--page-background);
+				display: flex;
+				flex-direction: column;
+			}
+			.page-bar {
+				background: var(--page-bar-background);
+				display: flex;
+				justify-content: space-between;
+				user-select: none;
+				align-items: center;
+			}
+			.page-bar > *:last-child {
+				text-align: right;
+			}
+			.pad {
+				padding: 0.8rem;
+			}
+			.page-content {
+				flex: 1;
+				padding: 0.8rem 0.8rem 0 0.8rem;
+				overflow-y: scroll;
+				overflow-x: hidden;
+				word-break: break-word;
+			}
+			.page-content::after {
+				height: 0.8rem;
+				content: " ";
+				display: block;
+			}
+			button {
+				border: 0;
+				background: none;
+				box-shadow: none;
+				font-size: inherit;
+				color: inherit;
+				font-family: inherit;
+				cursor: pointer;
+				user-select: none;
+				text-transform: inherit;
+			}
+			label {
+				cursor: pointer;
+			}
+			.btn {
+				background: var(--btn-background);
+				padding: 0.8rem;
+				border-radius: 0.4rem;
+			}
+			.settings-options {
+				padding-top: 0.4rem;
+				padding-bottom: 0.4rem;
+				background: var(--settings-option-background);
+				border-radius: 0.4rem;
+			}
+			.settings-option {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 0.4rem 0.8rem;
+			}
+			.setting-selection {
+				display: flex;
+				flex: 1;
+				background: #0000FF;
+				text-align: center;
+				align-items: center;
+				max-width: max(16%, 265px);
+			}
+			.settings-options .settings-checkbox, .settings-options .settings-number-field, .settings-select {
+				height: 1.5rem;
+			}
+			.settings-checkbox {
+				margin-top: 0;
+				margin-bottom: 0;
+				margin-right: 0;
+				pointer-events: none;
+				user-select: none;
+			}
+			.settings-number-field, .settings-select {
+				margin: 0 0 0 6%;
+				width: 4rem;
+			}
+			.page-bar-buttons {
+				display: flex;
+				//height: 100%;
+				margin: 0.8rem;
+				align-items: center;
+				justify-content: end;
+				flex-wrap: wrap;
+			}
+			.page-bar-buttons > button {
+				text-align: right;
+			}
+			hr {
+				border: 0;
+				margin: 0;
+				height: 0.8rem;
+				//background: white;
+			}
+			#game-container {
+				flex: 1;
+				display: flex;
+				overflow: scroll;
+				scrollbar-color: #000000 #ffffff;
+			}
+			#game-container > canvas {
+				margin: auto;
+			}
+			.width-100percent {
+				width: 100%;
+			}
+			noscript {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background: black;
+				overflow: scroll;
+			}
+			#detected-js, #alert-prototype {
+				display: none;
+			}
+			.page-bar-buttons button:not(.btn) {
+				margin-left: 0.8rem;
+				padding: 0;
+				height: 100%;
+			}
+			.alert {
+				position: fixed;
+				display: flex;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				background: #0000006a;
+				justify-content: center;
+			}
+			.alert > div {
+				flex: 1;
+				margin: auto;
+				display: flex;
+				justify-content: center;
+				max-height: 100%;
+			}
+			.alert > div > div {
+				width: min(70%, 30rem);
+			}
+			.vr {
+				height: 0px;
+				width: 0.8rem;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="page" data-page="menu" data-page-instruction="updateStats">
+			<div class="page-bar">
+				<div class="pad">
+					<htitle>Minesweeper</htitle>
+				</div>
+				<b class="pad" id="version-text"></b>
+			</div>
+			<div class="page-content">
+				<div class="gamemode">
+					<div>
+						<div>
+							<b class="title" translate>Matches Played</b>
+							<h2 id="singleplayer-matches-played">&nbsp;</h2>
+						</div>
+						<div>
+							<b class="title" translate>Matches Won</b>
+							<h2 id="singleplayer-matches-won">&nbsp;</h2>
+						</div>
+					</div>
+					<button class="btn width-100percent" data-nav="singleplayer-config" translate>Play</button>
+				</div>
+				<hr />
+				<div class="settings-options">
+					<div class="settings-option">
+						<button class="btn width-100percent" data-nav="settings" translate>Settings</button>
+					</div>
+					<div class="settings-option">
+						<button class="btn width-100percent" data-click-instruction="updateAlert" translate>Check for Updates</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="page" data-page="settings" data-page-instruction="settings get, settings load">
+			<div class="page-bar">
+				<div class="pad">
+					<htitle translate>Settings</htitle>
+				</div>
+				<div class="page-bar-buttons">
+					<button data-click-instruction="settings apply, showMessage({ &quot;msg&quot;: &quot;Applied settings.&quot; }), settings load" translate>Apply</button>
+					<button data-click-instruction="prevPage" translate>Close</button>
+				</div>
+			</div>
+			<div class="page-content">
+				<h5 translate>General</h5>
+				<div class="settings-options">
+					<label for="theme-select">
+						<div class="settings-option">
+							<b class="title" translate>Theme</b>
+							<select id="theme-select" data-name="theme" class="settings-select">
+								<option selected translate>Auto</option>
+								<option translate>Blue</option>
+								<option translate>Dark</option>
+							</select>
+						</div>
+					</label>
+					<label for="uppercase-checkbox">
+						<div class="settings-option">
+							<b class="title" translate>Uppercase Text</b>
+							<input type="checkbox" id="uppercase-checkbox" data-name="uppercaseText" class="settings-checkbox" checked />
+						</div>
+					</label>
+				</div>
+				<hr />
+				<h5 translate>Game Board</h5>
+				<div class="settings-options">
+					<div class="settings-option">
+						<b class="title" translate>Touch Flag Delay (ms)</b>
+						<input type="number" integer data-name="touchFlagDelay" min="80" max="1600" class="settings-number-field" value="500" />
+					</div>
+					<div class="settings-option">
+						<b class="title" translate>Flag Mouse Button</b>
+						<input type="number" integer data-name="flagMouseButton" min="1" max="3" class="settings-number-field" value="3" />
+					</div>
+				</div>
+			</div>
+			</div>
+		</div>
+		<div class="page" data-page="singleplayer-config">
+			<div class="page-bar">
+				<div class="pad">
+					<htitle translate>Play</htitle>
+				</div>
+				<div class="page-bar-buttons">
+					<button data-nav="menu" translate>Close</button>
+				</div>
+			</div>
+			<div class="page-content">
+				<div class="settings-options">
+					<div class="settings-option">
+						<b class="title" translate>Board Width</b>
+						<input type="number" value="10" class="settings-number-field" id="singleplayer-board-width" />
+					</div>
+					<div class="settings-option">
+						<b class="title" translate>Board Height</b>
+						<input type="number" value="10" class="settings-number-field" id="singleplayer-board-height" />
+					</div>
+					<div class="settings-option">
+						<b class="title" translate>Suggested Amount of Unsafe Tiles</b>
+						<input type="number" value="12" class="settings-number-field" id="singleplayer-suggested-unsafe-count" />
+					</div>
+					<label for="singleplayer-ensure-fairness">
+						<div class="settings-option">
+							<b class="title" translate>Ensure Fairness</b>
+							<input type="checkbox" class="settings-checkbox" id="singleplayer-ensure-fairness" checked />
+						</div>
+					</label>
+					<div class="settings-option">
+						<button class="width-100percent btn" data-click-instruction="playSingleplayerGame" translate>Play</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="alert" id="alert-prototype"><div><div><div class="page"><div class="page-bar"><div class="pad"><htitle></htitle></div><div class="page-bar-buttons"></div></div><div class="page-content"></div></div></div></div></div>
+		<div class="page" data-page="game">
+			<div class="page-bar">
+				<div class="pad">
+					<htitle translate>Game</htitle>
+				</div>
+				<div class="page-bar-buttons">
+					<button data-nav="settings" translate>Settings</button>
+					<button data-click-instruction="closeGame" translate>Close</button>
+				</div>
+			</div>
+			<div id="game-container">
+				<canvas id="game"></canvas>
+			</div>
+		</div>
+		<noscript><b>JavaScript is required.</b></noscript>
+		<script>
+			onunhandledrejection = onerror = (msg, file, line, column, error) => {
+				if (console.trace) {
+					console.log = console.trace;
+				}
+				console.log(msg, error);
+				let functionName = "onerror";
+				if (typeof msg === "object") {
+					file = msg.reason.fileName;
+					line = msg.reason.lineNumber;
+					column = msg.reason.columnNumber;
+					error = msg.reason;
+					msg = msg.reason.message;
+					functionName = "onunhandledrejection";
+				}
+				document.documentElement.innerHTML = "<head><title>Minesweeper</title><style>html{background:black;color:lightgrey;}a{color:orange;}</style><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"  /></head><body><pre></pre><a href>Retry</a> <a href=\"force_update.html\">Force Update</a></body>";
+				let pre = document.getElementsByTagName("pre")[0];
+				pre.style.width = "100%";
+				pre.style.whiteSpace = "pre-wrap";
+				pre.style.wordBreak = "break-word";
+				//pre.style.fontFamily = "monospace";
+				document.body.style.fontFamily = "monospace";
+				pre.innerText = `*** ${functionName} called ***
+
+An error (${(error && error["__proto__"] && error["__proto__"].constructor && error["__proto__"].constructor.name) || "Error"}) occurred.
+Description: ${(JSON.stringify(msg))}.
+
+${navigator.userAgent}
+v${version} @ ${new Date}
+`;
+				if (error && error.stack) {
+					pre.innerText += `
+${error.stack}`;
+				} else {
+					pre.innerText += `
+${file} @ ${line}`
+				}
+				stop();
+			}
+		</script>
+		<script>
+			// game //
+			function distinctRNG(min = 0, max = 99) {
+			    let ints = [];
+			    if (Array.isArray(min)) {
+			    	ints = [...min];
+			    } else {
+				    for (let idx = min; idx <= max; ++idx) {
+				        ints.push(idx);
+				    }
+				}
+			    return function generate(n = 1) {
+			        for (let idx1 = Math.max(0, ints.length - 1); idx1 > 0; --idx1) {
+			        	let idx2 = Math.floor(Math.random() * ints.length);
+			        	const x = ints[idx1];
+			        	ints[idx1] = ints[idx2];
+			        	ints[idx2] = x;
+			        }
+			        return ints.slice(0, n);
+			    }
+			}
+			function ctxSaver(context) {
+				let properties = {};
+				return {
+					saveCtx: (...keys) => {
+						for (let key of keys) {
+							properties[key] = context[key];
+						}
+					},
+					loadCtx: _ => {
+						for (let [key, val] of Object.entries(properties)) {
+							context[key] = val;
+						}
+					},
+				}
+			}
+			function cnfRange(x, min, max, round = 1) {
+				if (Number(x) !== x) {
+					x = 1;
+				}
+				if (round) {
+					x = Math.round(x);
+				}
+				if (x < min) {
+					x = min;
+				}
+				if (x > max) {
+					x = max;
+				}
+				return x;
+			}
+			function inRange(n, min, maxExclusive) {
+				return n >= min && n < maxExclusive;
+			}
+
+			let canvas = document.getElementById("game");
+
+			class Board {
+				/*
+					tiles, _width, _height
+				*/
+
+				set width(val) {
+					this._width = cnfRange(val, 1, 100);
+				}
+				get width() {
+					return this._width;
+				}
+
+				set height(val) {
+					this._height = cnfRange(val, 1, 100);
+				}
+				get height() {
+					return this._height;
+				}
+
+				tilesAtEdges(idx) {
+					return { up: idx - this.width >= 0, down: idx + this.width < this.width * this.height, left: idx % this.width != 0, right: (idx + 1) % this.width != 0, };
+				}
+
+				toggleFlag(idx, updatedTiles) {
+					if (this.tiles?.[idx]?.revealed === false) {
+						this.tiles[idx].flagged = !this.tiles[idx].flagged;
+						if (updatedTiles) {
+							updatedTiles.add(idx);
+						}
+					}
+				}
+
+				surroundingTiles(idx) {
+					let idxs = new Set;
+					let t = this.tilesAtEdges(idx);
+					if (t.up) {
+						idxs.add(idx - this.width);
+					}
+					if (t.left) {
+						if (t.up) {
+							idxs.add(idx - this.width - 1);
+						}
+						idxs.add(idx - 1);
+						if (t.down) {
+							idxs.add(idx + this.width - 1);
+						}
+					}
+					if (t.down) {
+						idxs.add(idx + this.width);
+					}
+					if (t.right) {
+						idxs.add(idx + 1);
+						if (t.down) {
+							idxs.add(idx + this.width + 1);
+						}
+						if (t.up) {
+							idxs.add(idx - this.width + 1);
+						}
+					}
+					return idxs;
+				}
+			}
+			class SingleplayerBoard extends Board {
+				/*
+					unsafeCount, eliminatedFromMatch, ensureFairness, _suggestedUnsafeCount, revealedSafeTileCount
+				*/
+				tileInc(idxs, updatedTiles, by = 1) {
+					for (let idx of idxs) {
+						if (idx >= 0 && idx < this.tiles.length) {
+							this.tiles[idx].bordering += by;
+							if (updatedTiles) {
+								updatedTiles.add(idx);
+							}
+						}
+					}
+				}
+
+				isFair(inputIdx) {
+					let numericTiles = new Set([inputIdx]);
+					let nodeInfo = (new Array(this.tiles.length)).fill().map((e, idx) => ({ unrevealedSurrounding: this.surroundingTiles(idx), unrevealedBordering: this.tiles[idx].bordering, visited: false, }));
+					nodeInfo[inputIdx].visited = true;
+					let nFoundUnsafeTiles = 0;
+					let aNumericTile = null;
+					for (;;) {
+						let madeFurtherProgress = false;
+						for (let numericTileIdx of numericTiles) {
+							if (nodeInfo[numericTileIdx].unrevealedBordering == 0) {
+								madeFurtherProgress = true;
+								let nodesToVisit = [...this.tiles[numericTileIdx].surrounding];
+								while (nodesToVisit.length) {
+									let tileIdx = nodesToVisit.shift();
+									if (this.tiles[tileIdx].unsafe || nodeInfo[tileIdx].visited) {
+										continue;
+									}
+									nodeInfo[tileIdx].visited = true;
+									for (let idx of this.tiles[tileIdx].surrounding) {
+										nodeInfo[idx].unrevealedSurrounding.delete(tileIdx);
+									}
+									if (!nodeInfo[tileIdx].unrevealedBordering) {
+										nodesToVisit.push(...this.tiles[tileIdx].surrounding);
+										continue;
+									}
+									numericTiles.add(tileIdx);
+								}
+								numericTiles.delete(numericTileIdx);
+							} else if (nodeInfo[numericTileIdx].unrevealedBordering === nodeInfo[numericTileIdx].unrevealedSurrounding.size) {
+								madeFurtherProgress = true;
+								for (let unsafeIdx of nodeInfo[numericTileIdx].unrevealedSurrounding) {
+									for (let idx of this.tiles[unsafeIdx].surrounding) {
+										nodeInfo[idx].unrevealedBordering -= 1;
+										nodeInfo[idx].unrevealedSurrounding.delete(unsafeIdx);
+										if (nodeInfo[idx].unrevealedSurrounding.size === 0) {
+											numericTiles.delete(idx);
+										}
+									}
+									if ((nFoundUnsafeTiles += 1) == this.unsafeCount) {
+										return true;
+									}
+								}
+								aNumericTile = numericTileIdx;
+								numericTiles.delete(numericTileIdx);
+							}
+						}
+						if (!madeFurtherProgress) {
+							let numericTile = numericTiles.values().next().value ?? aNumericTile;
+							aNumericTile = null;
+							if (!this.ensureFairness || numericTile === null) {
+								return false;
+							}
+							numericTiles.delete(numericTile);
+							nodeInfo[numericTile].visited = true;
+							for (let idx of this.tiles[numericTile].surrounding) {
+								if (this.tiles[idx].unsafe) {
+									this.tiles[idx].unsafe = false;
+									for (let tileIdx of this.tiles[idx].surrounding) {
+										this.tiles[tileIdx].bordering -= 1;
+										nodeInfo[tileIdx].unrevealedBordering -= 1;
+									}
+									nodeInfo[idx].visited = true;
+									if ((this.unsafeCount -= 1) == nFoundUnsafeTiles) {
+										return true;
+									}
+								}
+								numericTiles.add(idx);
+							}
+						}
+					}
+					console.trace("???");
+				}
+
+				async handleClick(tile, updatedTiles, didWin) {
+					if (!this.generated) {
+						this.generate(tile, updatedTiles);
+						if (!this.isFair(tile)) {
+							showMessage({ msg: "Unfair board.", });
+						}
+					}
+
+					if (this.tiles[tile].flagged || this.tiles[tile].revealed) {
+						return;
+					}
+					this.revealTile([tile], updatedTiles);
+
+					if (this.tiles[tile].unsafe) {
+						let shouldContinue = false;
+						await showMessage({ msg: "You were eliminated from the match!", buttons: [
+							{
+								title: "Continue",
+								function: closeAlert => {
+									shouldContinue = true;
+									closeAlert();
+								},
+							},
+							{
+								title: "Close",
+							}
+						]});
+						if (!shouldContinue) {
+							this.revealAllTiles(updatedTiles);
+							didWin(0);
+							return;
+						}
+						this.eliminatedFromMatch = true;
+					}
+
+					let revealBordering = this.tiles[tile].bordering != 0 ? [] : [tile], current = null;
+					while (typeof (current = revealBordering.pop()) == "number") {
+						if (!this.tiles[current].unsafe && this.tiles[current].bordering == 0) {
+							revealBordering.push(...this.revealTile(
+								this.surroundingTiles(current),
+								updatedTiles
+							));
+						}
+					}
+
+					if (this.revealedSafeTileCount == this.tiles.length - this.unsafeCount) {
+						this.revealAllTiles(updatedTiles);
+						if (this.eliminatedFromMatch) {
+							showMessage({ msg: "You completed the board!", });
+							didWin(0);
+						} else {
+							showMessage({ msg: "You won the match!", });
+							didWin(1);
+						}
+					}
+				}
+
+				set suggestedUnsafeCount(val) {
+					this._suggestedUnsafeCount = cnfRange(Math.round(val), 0, this.width * this.height - 9);
+				}
+				get suggestedUnsafeCount() {
+					return this._suggestedUnsafeCount;
+				}
+
+				constructor({ width, height, suggestedUnsafeCount, ensureFairness }) {
+					super();
+					this.width = width;
+					this.height = height;
+					this.suggestedUnsafeCount = suggestedUnsafeCount;
+					this.revealedSafeTileCount = 0;
+					this.ensureFairness = ensureFairness;
+				}
+
+				generate(tile, updatedTiles) {
+					this.generated = true;
+					this.tiles = [];
+					let arr = new Array(this.width * this.height);
+					for (let idx = this.width * this.height - 1; idx >= 0; --idx) {
+						this.tiles[idx] = {
+							bordering: 0,
+							unsafe: false,
+							revealed: false,
+							flagged: false,
+							surrounding: this.surroundingTiles(idx),
+						}
+						arr[idx] = idx;
+					}
+					let indexes = [];
+					let t = this.tilesAtEdges(tile);
+					if (t.up) {
+						if (t.left) {
+							indexes.push(tile - this.width - 1);
+						}
+						indexes.push(tile - this.width);
+						if (t.right) {
+							indexes.push(tile - this.width + 1);
+						}
+					}
+					if (t.left) {
+						indexes.push(tile - 1);
+					}
+					indexes.push(tile);
+					if (t.right) {
+						indexes.push(tile + 1);
+					}
+					if (t.down) {
+						if (t.left) {
+							indexes.push(tile + this.width - 1);
+						}
+						indexes.push(tile + this.width);
+						if (t.right) {
+							indexes.push(tile + this.width + 1);
+						}
+					}
+					for (let idx in indexes) {
+						let index = indexes[idx];
+						arr.splice(index - idx, 1);
+					}
+					let unsafeTiles = (new distinctRNG(arr))(this.suggestedUnsafeCount);
+					this.unsafeCount = unsafeTiles.length;
+					for (let unsafe of unsafeTiles) {
+						this.tiles[unsafe].unsafe = true;
+						this.tileInc(this.tiles[unsafe].surrounding, updatedTiles);
+					}
+				}
+
+				revealAllTiles(updatedTiles) {
+					for (let idx in this.tiles) {
+						if (!this.tiles[idx].revealed) {
+							this.tiles[idx].revealed = true;
+							this.tiles[idx].flagged = false;
+							if (updatedTiles) {
+								updatedTiles.add(idx);
+							}
+						}
+					}
+				}
+
+				revealTile(idxs, updatedTiles) {
+					let r = [];
+					for (let idx of idxs) {
+						if (idx >= 0 && idx < this.tiles.length) {
+							if (!this.tiles[idx].revealed) {
+								if (!this.tiles[idx].unsafe) {
+									this.revealedSafeTileCount += 1;
+									if (this.tiles[idx].bordering == 0) {
+										r.push(idx);
+									}
+								}
+								this.tiles[idx].revealed = true;
+								this.tiles[idx].flagged = false;
+								if (updatedTiles) {
+									updatedTiles.add(idx);
+								}
+							}
+						}
+					}
+					return r;
+				}
+			}
+			class Game {
+				static tileSize = 50;
+
+				setWH() {
+					let dpr = devicePixelRatio;
+					let height = this.board.height * Game.tileSize;
+					let width = this.board.width * Game.tileSize;
+					this.canvas.height = height * dpr;
+					this.canvas.width = width * dpr;
+					this.context.scale(dpr, dpr);
+					this.canvas.style.height = height + "px";
+					this.canvas.style.width = width + "px";
+
+					if (this.board.generated) {
+						this.render(Object.keys(this.board.tiles));
+					}
+				}
+
+				render(updatedTiles = this.updatedTiles) {
+					if (!this.board.generated) {
+						return;
+					}
+					let { saveCtx, loadCtx } = new ctxSaver(this.context);
+					saveCtx("fillStyle", "textBaseline", "textAlign", "font");
+					this.context.textBaseline = "middle";
+					this.context.textAlign = "center";
+					this.context.font = Math.floor(Game.tileSize / 2) + "px monospace";
+					for (let tile of updatedTiles) {
+						let y = Math.floor(tile / this.board.width) * Game.tileSize;
+						let x = (tile % this.board.width) * Game.tileSize;
+						if (
+							(x + Game.tileSize < this.container.scrollLeft || x >= this.container.scrollLeft + this.container.clientWidth) ||
+							(y + Game.tileSize < this.container.scrollTop || y >= this.container.scrollTop + this.container.clientHeight)
+						) {
+							continue;
+						}
+						if (updatedTiles instanceof Set) {
+							updatedTiles.delete(tile);
+						}
+						let tileData = this.board.tiles[tile];
+						this.context.fillStyle = "#000000";
+						if (tileData.flagged) {
+							this.context.fillStyle = "#0000FF";
+						} else if (!tileData.revealed) {
+							this.context.fillStyle = "#999999";
+						} else if (tileData.unsafe) {
+							this.context.fillStyle = "#FF0000";
+						}
+						this.context.fillRect(x, y, Game.tileSize, Game.tileSize);
+						if (this.context.fillStyle != "#000000") {
+							continue;
+						}
+						this.context.fillStyle = "#FFFFFF";
+						if (tileData.bordering != 0) {
+							this.context.fillText(tileData.bordering, x + Math.ceil(Game.tileSize / 2), y + Math.floor(Game.tileSize / 2) + 4);
+						}
+					}
+					loadCtx();
+				}
+
+				addEventListeners(target, ...list) {
+					for (let [name, func] of list) {
+						this.events.push([target, name, func]);
+						target.addEventListener(name, func);
+					}
+				}
+
+				destructor() {
+					for (let [target, name, func] of this.events) {
+						target.removeEventListener(name, func);
+					}
+				}
+				constructor(container, canvas, gameSettings = { }, board) {
+					this.updatedTiles = new Set;
+					this.events = [];
+
+					this.container = container;
+					this.canvas = canvas;
+					this.context = canvas.getContext("2d");
+
+					this.handleLose = gameSettings.handleLose || (_ => _);
+					this.handleWin = gameSettings.handleWin || (_ => _);
+
+					this.board = board;
+
+					canvas.style.background = "#999999";
+					canvas.style.userSelect = "none";
+					canvas.style.webkitUserSelect = "none";
+
+					this.addEventListeners(canvas,
+						["contextmenu", event => event.preventDefault()],
+						["touchstart", event => this.mousedown(event)],
+						["touchend", event => this.mouseup(event)],
+						["touchmove", event => this.touchmove(event)],
+						["touchcancel", event => this.touchmove(event)],
+						["mousedown", event => this.mousedown(event)],
+						["mouseup", event => this.mouseup(event)]
+					);
+
+					this.addEventListeners(container, ["scroll", _ => this.render()]);
+					this.addEventListeners(window, ["resize", _ => this.render()]);
+
+					this.step();
+				}
+
+				canvasCoordinates(x, y) {
+					return { x: x - this.canvas.offsetLeft + this.canvas.parentElement.scrollLeft, y: y - this.canvas.offsetTop + this.canvas.parentElement.scrollTop, };
+				}
+				tileForCoordinates(x, y) {
+					return Math.floor(y / (Number(this.canvas.style.height.replace("px", "")) / this.board.height)) * this.board.width + Math.floor(x / (Number(this.canvas.style.width.replace("px", "") / this.board.width)));
+				}
+				async click(event) {
+					//event.preventDefault();
+					if (this.paused) {
+						return;
+					}
+					requestAnimationFrame(_ => this.step());
+					let { x, y } = this.canvasCoordinates(event.x, event.y);
+					let tile = this.tileForCoordinates(x, y);
+					if (event.which == this.flagMouseButton) {
+						return this.board.tiles && this.board.toggleFlag(tile, this.updatedTiles);
+					}
+
+					await this.board.handleClick(tile, this.updatedTiles, matchResult => {
+						this.step();
+						this.paused = true;
+
+						this[matchResult == 0 ? "handleLose" : "handleWin"]();
+					});
+				}
+				mousedown(event) {
+					//event.preventDefault();
+					if (this.paused || this.mousedownInfo) {
+						return;
+					}
+					this.mousedownAt = performance.now();
+					event.x ??= event.touches[0].clientX;
+					event.y ??= event.touches[0].clientY;
+					let { x, y } = this.canvasCoordinates(event.x, event.y);
+					let tile = this.tileForCoordinates(x, y);
+					this.mousedownInfo = { x: event.x, y: event.y, tile: tile, identifier: event?.touches?.[0]?.identifier ?? "mouse", };
+					if (!(this.board instanceof Board) || event.type == "mousedown") {
+						return;
+					}
+					this.darkener = setTimeout(_ => {
+						this.darkener = null;
+						this.canvas.style.filter = "brightness(75%)";
+					}, this.touchFlagDelay);
+				}
+				mouseup(event) {
+					if (event.cancelable) {
+						event.preventDefault();
+					}
+					if (this.paused || this.mousedownInfo == null) {
+						return;
+					}
+					let mousedownTile = this.mousedownInfo.tile;
+					for (let touch of event?.changedTouches ?? []) {
+						if (touch.identifier == this.mousedownInfo.identifier) {
+							event.x = touch.clientX;
+							event.y = touch.clientY;
+							break;
+						}
+					}
+					if (typeof event.x == "undefined") {
+						return;
+					}
+					this.mousedownInfo = null;
+					if (typeof this.darkener == "number") {
+						clearTimeout(this.darkener);
+						this.darkener = null;
+					}
+					this.canvas.style.filter = "";
+					let { x, y } = this.canvasCoordinates(event.x, event.y);
+					let tile = this.tileForCoordinates(x, y);
+					if (tile != mousedownTile) {
+						return;
+					}
+					if (performance.now() - this.mousedownAt < this.touchFlagDelay || event.type == "mouseup") {
+						this.click(event);
+					} else if (this.board instanceof Board) {
+						this.board.toggleFlag(tile, this.updatedTiles);
+						this.step();
+					}
+				}
+				touchmove(event) {
+					if (this.paused || !this.mousedownInfo) {
+						return;
+					}
+					let touch = null;
+					for (let t of event.changedTouches) {
+						if (t.identifier == this.mousedownInfo.identifier) {
+							touch = t;
+							break;
+						}
+					}
+					if (!touch) {
+						return;
+					}
+					let [ x, y ] = [touch.clientX, touch.clientY];
+					if (event.type == "touchcancel" || (Math.abs(x - this.mousedownInfo?.x) > 50 || Math.abs(y - this.mousedownInfo?.y) > 50)) {
+						if (typeof this.darkener == "number") {
+							clearTimeout(this.darkener);
+							this.darkener = null;
+						}
+						this.canvas.style.filter = "";
+						this.mousedownInfo = null;
+					}
+				}
+
+				step() {
+					if (!this.paused) {
+						this.render();
+					}
+				}
+			}
+
+			// web app stuff //
+
+			ontouchstart = _ => _;
+			function showMessage({ title, msg, buttons, call }) {
+				return new Promise(res => {
+					if (!buttons) {
+						buttons = [{ title: "Close", }];
+					}
+					let elem = document.getElementById("alert-prototype").cloneNode(true);
+					let closeAlert = _ => {
+						elem.remove();
+						res();
+					}
+					elem.pageElem = elem.children[0].children[0].children[0];
+					(elem.titleElement = elem.children[0].children[0].children[0].children[0].children[0].children[0]).innerText = title ?? "";
+					elem.buttonsElement = elem.children[0].children[0].children[0].children[0].children[1];
+					elem.buttonsElement.addButtons = buttons => {
+						let btn;
+						for (let description of buttons) {
+							btn = document.createElement("button");
+							btn.innerText = description.title;
+							description.function ??= closeAlert;
+							btn.onclick = description.function.bind(btn, closeAlert);
+							elem.buttonsElement.append(btn);
+						}
+						setTimeout(_ => btn?.focus());
+					}
+					elem.buttonsElement.addButtons(buttons);
+					(elem.textElement = elem.children[0].children[0].children[0].children[1]).innerText = msg ?? "";
+					elem.id = "";
+					document.body.append(elem);
+					call?.(elem, closeAlert);
+				});
+			}
+			function instructionParser(instruction, safeFunctions = ["settings.get", "settings.load", "settings.apply", "prevPage", "closeGame", "playSingleplayerGame", "alert", "location.reload", "updateStats", "update", "showMessage", "updateAlert"]) {
+				let functions = [];
+				let components = [], component = 0;
+				let idx = 0;
+				let args = [];
+				while (instruction[idx]) {
+					if (![undefined, " ", ".", ",", "("].includes(instruction[idx])) {
+						components.push(instruction[idx++]);
+						for (; ![undefined, " ", ".", ",", "("].includes(instruction[idx]); ++idx) {
+							components[component] += instruction[idx];
+						}
+						component += 1;
+					}
+					if (instruction[idx] == "(") {
+						let jsonIdx = idx;
+						let inString = 0;
+						while ((inString || instruction[idx] != ")") && instruction[idx]) {
+							if (instruction[idx] == "\"") {
+								inString ^= 1;
+							} else if (inString && instruction[idx] == "\\") {
+								idx += 1;
+							}
+							idx += 1;
+						}
+						if (!instruction[idx]) {
+							break;
+						}
+						args = JSON.parse(`[${instruction.substring(jsonIdx + 1, idx++)}]`);
+						while (![undefined, ","].includes(instruction[idx])) {
+							idx += 1;
+						}
+					}
+					if (instruction[idx] == "," || !instruction[idx]) {
+						functions.push([components, args]);
+						component = 0, components = [], args = [];
+						idx += 1;
+						while (instruction[idx] == " ") {
+							idx += 1;
+						}
+						continue;
+					}
+					if (instruction[idx] == "." && instruction[++idx] == ".") {
+						break;
+					}
+					while (instruction[idx] == " ") {
+						idx += 1;
+					}
+				}
+				functions = functions.map(e => {
+					if (!safeFunctions.includes(e[0].join("."))) {
+						throw new Error(`instructionParser: bad function (${e[0]})`);
+					}
+					let obj = globalThis;
+					for (idx = 0; idx < e[0].length - 1; ++idx) {
+						obj = obj[e[0][idx]];
+					}
+					return [obj[e[0][idx]].bind(obj), e[1]];
+				});
+				return _ => {
+					for (let [fn, args] of functions) {
+						fn(...args);
+					}
+				}
+			}
+
+			var settings = {
+				settingsPage: document.querySelector("[data-page=settings]"),
+				apply() {
+					let populate = (obj, nodes, prop, key, checkMinAndMax) => {
+						for (let node of nodes) {
+							let nodeValue = checkMinAndMax ? Number(node[prop]) : node[prop];
+							if (node.hasAttribute("integer")) {
+								node.value = nodeValue = Math.round(nodeValue);
+							}
+							if (checkMinAndMax && typeof node.min != "undefined" && typeof node.max != "undefined") {
+								if (nodeValue < Number(node.min)) {
+									node.value = node.min;
+								} else if (nodeValue > Number(node.max)) {
+									node.value = node.max;
+								}
+								nodeValue = Number(node.value);
+							}
+							obj[node.dataset.name] = nodeValue;
+						}
+						localStorage.setItem(key, JSON.stringify(obj));
+					}
+					populate(this.checkboxes, this.settingsPage.getElementsByClassName("settings-checkbox"), "checked", "settings checkboxes", false);
+					populate(this.dropdowns, this.settingsPage.getElementsByClassName("settings-select"), "selectedIndex", "settings dropdowns", false);
+					populate(this.numberFields, this.settingsPage.getElementsByClassName("settings-number-field"), "value", "settings numberFields", true);
+
+					if (this.checkboxes.uppercaseText) {
+						document.body.style.textTransform = "uppercase";
+					} else {
+						document.body.style.textTransform = "";
+					}
+					if (this.dropdowns.theme == 0) {
+						this.darkModeQuery.onchange(this.darkModeQuery);
+					} else {
+						this.setTheme(this.dropdowns.theme == 1 ? "blue" : "dark");
+					}
+				},
+				setTheme(theme) {
+					if (theme === "dark") {
+						document.documentElement.style.setProperty("--page-background", "#444444");
+						document.documentElement.style.setProperty("--page-bar-background", "#2f2f2f");
+						document.documentElement.style.setProperty("--btn-background", "#303030");
+						document.documentElement.style.setProperty("--settings-option-background", "#393939");
+					} else if (theme === "blue") {
+						document.documentElement.style.setProperty("--page-background", "#3a9ffe");
+						document.documentElement.style.setProperty("--page-bar-background", "#3a7bd5");
+						document.documentElement.style.setProperty("--btn-background", "#2c77fc");
+						document.documentElement.style.setProperty("--settings-option-background", "#3186fe");
+					}
+				},
+				load() {
+					let conflicts = {};
+					let dependencies = {};
+					let populate = (objKey, key, className, prop) => {
+						p: for (;;) {
+							for (let name in this[objKey]) {
+								try {
+									let e = document.querySelector(`.${className}[data-name="${name}"]`);
+									e.parentElement.style.color = "";
+									if ((e[prop] = this[objKey][name])) {
+										dependencies[e.id] = null;
+									}
+									e.style.filter = "";
+									if (e.dataset.conflicts && this[objKey][name] && !conflicts[e.id]) {
+										conflicts[e.id] = [];
+										for (let elemId of e.dataset.conflicts.split(" ")) {
+											conflicts[elemId] = [];
+											conflicts[e.id].push(elemId);
+										}
+									}
+									if (e.dataset.depends && dependencies[e.dataset.depends] !== null) {
+										dependencies[e.dataset.depends] ??= [];
+										dependencies[e.dataset.depends].push(e.id);
+									}
+								} catch (err) {
+									localStorage.removeItem(key);
+									this.get();
+									continue p;
+								}
+							}
+							return;
+						}
+					}
+					populate("checkboxes", "settings checkboxes", "settings-checkbox", "checked");
+					populate("dropdowns", "settings dropdowns", "settings-select", "selectedIndex");
+					populate("numberFields", "settings numberFields", "settings-number-field", "value");
+					for (let elem of [Object.values(conflicts), Object.values(dependencies).filter(e => e !== null)].flat(Number.MAX_SAFE_INTEGER).map(e => document.getElementById(e))) {
+						elem.parentElement.style.color = "lightgrey";
+						elem.style.filter = "grayscale(100%)";
+					}
+				},
+				ready() {
+					this.darkModeQuery = matchMedia("(prefers-color-scheme: dark)");
+					let fn = e => {
+						if (this.dropdowns.theme == 0) {
+							this.setTheme(e.matches ? "dark" : "blue");
+						}
+					};
+					fn(this.darkModeQuery);
+					this.darkModeQuery.onchange = fn;
+				},
+				get() {
+					let populate = (objName, nodes, key, value, valueProp, processValue = _ => _) => {
+						if (!(this[objName] = JSON.parse(localStorage.getItem(key)))) {
+							this[objName] = {};
+						}
+						for (let node of nodes) {
+							this[objName][node.dataset.name] ??= typeof valueProp != "undefined" ? processValue(node[valueProp]) : value;
+						}
+					}
+					populate("checkboxes", this.settingsPage.getElementsByClassName("settings-checkbox"), "settings checkboxes", false, "checked");
+					populate("dropdowns", this.settingsPage.getElementsByClassName("settings-select"), "settings dropdowns", 0, "selectedIndex", Number);
+					populate("numberFields", this.settingsPage.getElementsByClassName("settings-number-field"), "settings numberFields", "", "value", Number);
+				},
+			}
+			{
+				for (let elem of document.querySelectorAll("[data-click-instruction]")) (elem => {
+					elem.addEventListener("click", instructionParser(elem.dataset.clickInstruction));
+				})(elem);
+			}
+			settings.get();
+			settings.ready();
+			settings.apply();
+
+			function showPage(pageName) {
+				let found = false;
+				for (let page of document.querySelectorAll("[data-page]")) {
+					if (page.dataset.page == pageName) {
+						page.style.display = "";
+						if (page.dataset?.pageInstruction) {
+							instructionParser(page.dataset.pageInstruction)();
+						}
+						showPage.pages.push(pageName);
+						found = true;
+					} else {
+						page.style.display = "none";
+					}
+				}
+				if (!found) {
+					throw new Error(`${pageName} not found`);
+				}
+			}
+			showPage.pages = [];
+			function prevPage() {
+				showPage.pages.pop();
+				showPage(showPage.pages.pop());
+			}
+			function setGameSettings() {
+				if (!Game.current) {
+					return;
+				}
+				Game.current.touchFlagDelay = settings.numberFields.touchFlagDelay;
+				Game.current.flagMouseButton = settings.numberFields.flagMouseButton;
+
+				Game.current.setWH();
+			}
+			function closeGame() {
+				prevPage();
+				Game.current.paused = true;
+				requestAnimationFrame(_ => requestAnimationFrame(_ => {
+					Game.current.destructor();
+					delete Game.current;
+				}));
+			}
+			let stats = JSON.parse(localStorage.getItem("menu statistics") ?? `{ "singleplayer": { "matchesPlayed": 0, "matchesWon": 0 } }`);
+			function updateStats() {
+				document.getElementById("version-text").innerText = `Version ${version}`;
+				document.getElementById("singleplayer-matches-played").innerText = stats.singleplayer.matchesPlayed;
+				document.getElementById("singleplayer-matches-won").innerText = stats.singleplayer.matchesWon;
+			}
+			for (let btn of document.querySelectorAll("[data-nav]")) (btn => {
+				btn.addEventListener("click", _ => showPage(btn.dataset.nav));
+			})(btn);
+			showPage("menu");
+
+			function playSingleplayerGame() {
+				Game.current = new Game(
+					document.getElementById("game-container"),
+					canvas,
+					{
+						handleWin: _ => {
+							stats.singleplayer.matchesWon += 1;
+							localStorage.setItem("menu statistics", JSON.stringify(stats));
+						},
+					},
+					new SingleplayerBoard({
+						width: document.getElementById("singleplayer-board-width").valueAsNumber,
+						height: document.getElementById("singleplayer-board-height").valueAsNumber,
+						suggestedUnsafeCount: document.getElementById("singleplayer-suggested-unsafe-count").valueAsNumber,
+						ensureFairness: document.getElementById("singleplayer-ensure-fairness").checked,
+					})
+				);
+				stats.singleplayer.matchesPlayed += 1;
+				localStorage.setItem("menu statistics", JSON.stringify(stats));
+				showPage("game");
+
+				setGameSettings();
+			}
+			navigator.serviceWorker.register("./sw.js", { scope: "./", }).catch(_ => showMessage({ title: "Warning", msg: "Failed to register service worker." }));
+			async function message(msg, handler, swr) {
+				if (!message.handlers) {
+					message.handlers = new Map;
+					message.id = 0n;
+					navigator.serviceWorker.addEventListener("message", e => {
+						message.handlers.get(e.data.id)(e);
+						message.handlers.delete(e.data.id);
+					});
+				}
+				if (typeof msg != "object") {
+					msg = { message: msg };
+				}
+				message.handlers.set(msg.id = message.id++, handler);
+				(swr || await navigator.serviceWorker.ready).active.postMessage(msg);
+			}
+			function update({ force, call }) {
+				if (force === true) {
+					call(4);
+					return navigator.serviceWorker.ready.then(swr => swr.update()).then(swr => message("update", _ => call(5), swr));
+				}
+				fetch("./version").then(response => {
+					if (response.status !== 200) {
+						throw "Error getting latest version.";
+					}
+					return response.text();
+				}).then(text => call(text.trim() > version ? 2 : 3)).catch(e => {
+					call(1);
+				});
+			}
+			function updateAlert(elem, closeAlert) {
+				if (!elem) {
+					return showMessage({ title: "Update Minesweeper", msg: "Checking for updates...", buttons: [], call: updateAlert, });
+				}
+				elem.style.zIndex = "1";
+				function updateCall(id) {
+					if (id === 1) {
+						elem.textElement.innerText = "Connect to the Internet.";
+						elem.buttonsElement.addButtons([{ title: "Close", }]);
+					} else if (id === 2) {
+						elem.textElement.innerText = "An update is available!";
+						elem.buttonsElement.addButtons([{ title: "Update", function: _ => update({ force: true, call: updateCall, }), }, { title: "Close", }]);
+					} else if (id === 3) {
+						elem.textElement.innerText = "You are already using the latest Minesweeper client.";
+						elem.buttonsElement.addButtons([{ title: "Force Update", function: _ => update({ force: true, call: updateCall, }), }, { title: "Close", }]);
+					} else if (id === 4) {
+						elem.textElement.innerText = "Updating!";
+						elem.buttonsElement.innerHTML = ``;
+					} else if (id === 5) {
+						elem.pageElem.style.minHeight = getComputedStyle(elem.pageElem).height;
+						elem.textElement.innerText = "Updated!";
+						elem.style.zIndex = "";
+						let animToFunc = _ => {
+							elem.pageElem.parentElement.style.width = "100%";
+							elem.pageElem.parentElement.parentElement.style.margin = "0px 0px";
+							elem.buttonsElement.addButtons([{ title: "Close", function: location.reload.bind(location), }]);
+						}
+						elem.pageElem.parentElement.parentElement.style.margin = getComputedStyle(elem.pageElem.parentElement.parentElement).marginTop + " 0px";
+						requestAnimationFrame(_ => {
+							elem.pageElem.parentElement.parentElement.style.transition = "0.32s";
+							elem.pageElem.parentElement.style.transition = "0.32s";
+							requestAnimationFrame(animToFunc);
+						});					}
+				}
+				update({ call: updateCall, });
+			}
+		</script>
+	</body>
+</html>
