@@ -617,6 +617,16 @@ ${file} @ ${line}`
 							}
 							numericTiles.delete(numericTile);
 							nodeInfo[numericTile].visited = true;
+							// a better way to do this is probably to:
+							// - find every bomb
+							// - for each bomb, clone the board
+							//  - remove that bomb from the new board
+							//  - check if that board is fair
+							//   - if it isn't, recurse from "find every bomb" for that cloned board
+							// this is a recursive procedure. the board
+							// with the most bombs after this procedure
+							// shall be the one that gets played.
+							// ("dynamic programming")
 							for (let idx of this.tiles[numericTile].surrounding) {
 								if (this.tiles[idx].unsafe) {
 									this.tiles[idx].unsafe = false;
@@ -912,7 +922,6 @@ ${file} @ ${line}`
 					if (this.paused) {
 						return;
 					}
-					requestAnimationFrame(_ => this.step());
 					let { x, y } = this.canvasCoordinates(event.x, event.y);
 					let tile = this.tileForCoordinates(x, y);
 					if (event.which == this.flagMouseButton) {
@@ -925,6 +934,7 @@ ${file} @ ${line}`
 
 						this[matchResult == 0 ? "handleLose" : "handleWin"]();
 					});
+					this.step();
 				}
 				mousedown(event) {
 					//event.preventDefault();
