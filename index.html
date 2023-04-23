@@ -626,6 +626,8 @@ ${file} @ ${line}`
 							// this is a recursive procedure. the board
 							// with the most bombs after this procedure
 							// shall be the one that gets played.
+							// if there are multiple of such boards,
+							// then select one of them at random.
 							// ("dynamic programming")
 							for (let idx of this.tiles[numericTile].surrounding) {
 								if (this.tiles[idx].unsafe) {
