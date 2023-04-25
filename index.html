@@ -6,7 +6,7 @@
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<link rel="icon" href="about:favicon" />
 		<title>Minesweeper</title>
-		<script>var version = "0.0.0";</script>
+		<script>var version = "0.0.1";</script>
 		<style>
 			@keyframes alert {
 				from {
@@ -47,7 +47,7 @@
 				font-family: "PT Sans Caption";
 				font-style: normal;
 				font-weight: 700;
-				font-display: block;
+				font-display: swap;
 				src: url("./pt-sans-caption.woff2") format("woff2");
 				unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 			}
@@ -190,11 +190,12 @@
 			}
 			.page-bar-buttons {
 				display: flex;
-				//height: 100%;
+				height: 100%;
 				margin: 0.8rem;
 				align-items: center;
 				justify-content: end;
 				flex-wrap: wrap;
+				gap: 0.8rem;
 			}
 			.page-bar-buttons > button {
 				text-align: right;
@@ -208,8 +209,7 @@
 			#game-container {
 				flex: 1;
 				display: flex;
-				overflow: scroll;
-				scrollbar-color: #000000 #ffffff;
+				overflow: hidden;
 			}
 			#game-container > canvas {
 				margin: auto;
@@ -230,7 +230,6 @@
 				display: none;
 			}
 			.page-bar-buttons button:not(.btn) {
-				margin-left: 0.8rem;
 				padding: 0;
 				height: 100%;
 			}
@@ -330,10 +329,6 @@
 						<b class="title" translate>Touch Flag Delay (ms)</b>
 						<input type="number" integer data-name="touchFlagDelay" min="80" max="1600" class="settings-number-field" value="500" />
 					</div>
-					<div class="settings-option">
-						<b class="title" translate>Flag Mouse Button</b>
-						<input type="number" integer data-name="flagMouseButton" min="1" max="3" class="settings-number-field" value="3" />
-					</div>
 				</div>
 			</div>
 			</div>
@@ -358,15 +353,9 @@
 						<input type="number" value="10" class="settings-number-field" id="singleplayer-board-height" />
 					</div>
 					<div class="settings-option">
-						<b class="title" translate>Suggested Amount of Unsafe Tiles</b>
-						<input type="number" value="12" class="settings-number-field" id="singleplayer-suggested-unsafe-count" />
+						<b class="title" translate>Suggested Amount of Bombs</b>
+						<input type="number" value="12" class="settings-number-field" id="singleplayer-suggested-bomb-count" />
 					</div>
-					<label for="singleplayer-ensure-fairness">
-						<div class="settings-option">
-							<b class="title" translate>Ensure Fairness</b>
-							<input type="checkbox" class="settings-checkbox" id="singleplayer-ensure-fairness" checked />
-						</div>
-					</label>
 					<div class="settings-option">
 						<button class="width-100percent btn" data-click-instruction="playSingleplayerGame" translate>Play</button>
 					</div>
@@ -413,7 +402,7 @@
 				document.body.style.fontFamily = "monospace";
 				pre.innerText = `*** ${functionName} called ***
 
-An error (${(error && error["__proto__"] && error["__proto__"].constructor && error["__proto__"].constructor.name) || "Error"}) occurred.
+An error (${error?.__proto__?.constructor?.name ?? "Error"}) occurred.
 Description: ${(JSON.stringify(msg))}.
 
 ${navigator.userAgent}
@@ -432,23 +421,23 @@ ${file} @ ${line}`
 		<script>
 			// game //
 			function distinctRNG(min = 0, max = 99) {
-			    let ints = [];
-			    if (Array.isArray(min)) {
-			    	ints = [...min];
-			    } else {
-				    for (let idx = min; idx <= max; ++idx) {
-				        ints.push(idx);
-				    }
+				let ints = [];
+				if (Array.isArray(min)) {
+					ints = [...min];
+				} else {
+					for (let idx = min; idx <= max; ++idx) {
+						ints.push(idx);
+					}
 				}
-			    return function generate(n = 1) {
-			        for (let idx1 = Math.max(0, ints.length - 1); idx1 > 0; --idx1) {
-			        	let idx2 = Math.floor(Math.random() * ints.length);
-			        	const x = ints[idx1];
-			        	ints[idx1] = ints[idx2];
-			        	ints[idx2] = x;
-			        }
-			        return ints.slice(0, n);
-			    }
+				return function generate(n = 1) {
+					for (let idx1 = Math.max(0, ints.length - 1); idx1 > 0; --idx1) {
+						let idx2 = Math.floor(Math.random() * ints.length);
+						const x = ints[idx1];
+						ints[idx1] = ints[idx2];
+						ints[idx2] = x;
+					}
+					return ints.slice(0, n);
+				}
 			}
 			function ctxSaver(context) {
 				let properties = {};
@@ -487,34 +476,13 @@ ${file} @ ${line}`
 			let canvas = document.getElementById("game");
 
 			class Board {
-				/*
-					tiles, _width, _height
-				*/
-
-				set width(val) {
-					this._width = cnfRange(val, 1, 100);
-				}
-				get width() {
-					return this._width;
-				}
-
-				set height(val) {
-					this._height = cnfRange(val, 1, 100);
-				}
-				get height() {
-					return this._height;
-				}
-
 				tilesAtEdges(idx) {
 					return { up: idx - this.width >= 0, down: idx + this.width < this.width * this.height, left: idx % this.width != 0, right: (idx + 1) % this.width != 0, };
 				}
 
-				toggleFlag(idx, updatedTiles) {
-					if (this.tiles?.[idx]?.revealed === false) {
+				toggleFlag(idx) {
+					if (this.generated && !this.tiles[idx].revealed) {
 						this.tiles[idx].flagged = !this.tiles[idx].flagged;
-						if (updatedTiles) {
-							updatedTiles.add(idx);
-						}
 					}
 				}
 
@@ -547,123 +515,123 @@ ${file} @ ${line}`
 					}
 					return idxs;
 				}
-			}
-			class SingleplayerBoard extends Board {
-				/*
-					unsafeCount, eliminatedFromMatch, ensureFairness, _suggestedUnsafeCount, revealedSafeTileCount
-				*/
-				tileInc(idxs, updatedTiles, by = 1) {
-					for (let idx of idxs) {
-						if (idx >= 0 && idx < this.tiles.length) {
-							this.tiles[idx].bordering += by;
-							if (updatedTiles) {
-								updatedTiles.add(idx);
-							}
-						}
-					}
-				}
 
 				isFair(inputIdx) {
-					let numericTiles = new Set([inputIdx]);
-					let nodeInfo = (new Array(this.tiles.length)).fill().map((e, idx) => ({ unrevealedSurrounding: this.surroundingTiles(idx), unrevealedBordering: this.tiles[idx].bordering, visited: false, }));
-					nodeInfo[inputIdx].visited = true;
-					let nFoundUnsafeTiles = 0;
-					let aNumericTile = null;
-					for (;;) {
-						let madeFurtherProgress = false;
-						for (let numericTileIdx of numericTiles) {
-							if (nodeInfo[numericTileIdx].unrevealedBordering == 0) {
-								madeFurtherProgress = true;
-								let nodesToVisit = [...this.tiles[numericTileIdx].surrounding];
-								while (nodesToVisit.length) {
-									let tileIdx = nodesToVisit.shift();
-									if (this.tiles[tileIdx].unsafe || nodeInfo[tileIdx].visited) {
+					// a list of revealed tiles which are currently bordering unrevealed tiles
+					let toVisit = new Set([inputIdx]);
+					let nodeInfo = Array.from({ length: this.tiles.length, }, (_, idx) => ({
+						unrevealedSurrounding: this.surroundingTiles(idx),
+						unrevealedSurroundingBombs: this.nearbyBombs(idx),
+						revealed: false,
+					}));
+
+					nodeInfo[inputIdx].revealed = true;
+					for (let idx of this.surroundingTiles(inputIdx)) {
+						nodeInfo[idx].unrevealedSurrounding.delete(inputIdx);
+					}
+					let nRevealed = 1;
+
+					let nFoundBombTiles = 0;
+
+					let progressed;
+					do {
+						progressed = false;
+
+						for (let tile of toVisit) {
+							if (
+								nodeInfo[tile].unrevealedSurroundingBombs === nodeInfo[tile].unrevealedSurrounding.size &&
+								nodeInfo[tile].unrevealedSurroundingBombs !== 0
+							) {
+								progressed = true;
+
+								// mark bombs
+								if (!nodeInfo[tile].revealed) {
+									throw tile + " not revealed";
+								}
+								toVisit.delete(tile);
+
+								for (let bombIdx of nodeInfo[tile].unrevealedSurrounding) {
+									for (let idx of this.surroundingTiles(bombIdx)) {
+										nodeInfo[idx].unrevealedSurroundingBombs -= 1;
+										nodeInfo[idx].unrevealedSurrounding.delete(bombIdx);
+									}
+									if ((nFoundBombTiles += 1) == this.bombCount) {
+										return true;
+									}
+								}
+							} else if (
+								nodeInfo[tile].unrevealedSurroundingBombs === 0 &&
+								nodeInfo[tile].unrevealedSurrounding.size !== 0
+							) {
+								progressed = true;
+
+								// surrounding bombs are marked, reveal other surrounding tiles
+								toVisit.delete(tile);
+								
+								for (let tileIdx of this.surroundingTiles(tile)) {
+									if (this.bombs.has(tileIdx) || nodeInfo[tileIdx].revealed) {
 										continue;
 									}
-									nodeInfo[tileIdx].visited = true;
-									for (let idx of this.tiles[tileIdx].surrounding) {
+
+									nodeInfo[tileIdx].revealed = true;
+									if ((nRevealed += 1) == this.tiles.length - this.bombCount) {
+										return true;
+									}
+									for (let idx of this.surroundingTiles(tileIdx)) {
 										nodeInfo[idx].unrevealedSurrounding.delete(tileIdx);
 									}
-									if (!nodeInfo[tileIdx].unrevealedBordering) {
-										nodesToVisit.push(...this.tiles[tileIdx].surrounding);
-										continue;
-									}
-									numericTiles.add(tileIdx);
+
+									toVisit.add(tileIdx);
 								}
-								numericTiles.delete(numericTileIdx);
-							} else if (nodeInfo[numericTileIdx].unrevealedBordering === nodeInfo[numericTileIdx].unrevealedSurrounding.size) {
-								madeFurtherProgress = true;
-								for (let unsafeIdx of nodeInfo[numericTileIdx].unrevealedSurrounding) {
-									for (let idx of this.tiles[unsafeIdx].surrounding) {
-										nodeInfo[idx].unrevealedBordering -= 1;
-										nodeInfo[idx].unrevealedSurrounding.delete(unsafeIdx);
-										if (nodeInfo[idx].unrevealedSurrounding.size === 0) {
-											numericTiles.delete(idx);
-										}
-									}
-									if ((nFoundUnsafeTiles += 1) == this.unsafeCount) {
-										return true;
-									}
-								}
-								aNumericTile = numericTileIdx;
-								numericTiles.delete(numericTileIdx);
 							}
 						}
-						if (!madeFurtherProgress) {
-							let numericTile = numericTiles.values().next().value ?? aNumericTile;
-							aNumericTile = null;
-							if (!this.ensureFairness || numericTile === null) {
-								return false;
-							}
-							numericTiles.delete(numericTile);
-							nodeInfo[numericTile].visited = true;
-							// a better way to do this is probably to:
-							// - find every bomb
-							// - for each bomb, clone the board
-							//  - remove that bomb from the new board
-							//  - check if that board is fair
-							//   - if it isn't, recurse from "find every bomb" for that cloned board
-							// this is a recursive procedure. the board
-							// with the most bombs after this procedure
-							// shall be the one that gets played.
-							// if there are multiple of such boards,
-							// then select one of them at random.
-							// ("dynamic programming")
-							for (let idx of this.tiles[numericTile].surrounding) {
-								if (this.tiles[idx].unsafe) {
-									this.tiles[idx].unsafe = false;
-									for (let tileIdx of this.tiles[idx].surrounding) {
-										this.tiles[tileIdx].bordering -= 1;
-										nodeInfo[tileIdx].unrevealedBordering -= 1;
-									}
-									nodeInfo[idx].visited = true;
-									if ((this.unsafeCount -= 1) == nFoundUnsafeTiles) {
-										return true;
-									}
-								}
-								numericTiles.add(idx);
-							}
-						}
-					}
-					console.trace("???");
+					} while (progressed);
+
+					return false;
 				}
 
-				async handleClick(tile, updatedTiles, didWin) {
-					if (!this.generated) {
-						this.generate(tile, updatedTiles);
+				nearbyBombs(tile) {
+					return [...this.surroundingTiles(tile)].filter(idx => this.bombs.has(idx)).length;
+				}
+
+				async handleClick(tile, didWin) {
+					while (!this.generated) {
+						if (!this.rand) {
+							let arr = Object.keys(this.tiles).map(idx => Number(idx));
+							let exclude = [tile, ...this.surroundingTiles(tile)].sort((a, b) => a - b);
+							for (let idx = 0; idx < exclude.length; ++idx) {
+								arr.splice(exclude[idx] - idx, 1);
+							}
+							this.rand = new distinctRNG(arr);
+						}
+						this.generate(tile);
 						if (!this.isFair(tile)) {
-							showMessage({ msg: "Unfair board.", });
+							await showMessage({ msg: "Unfair board.", buttons: [
+								{
+									title: "Regenerate",
+									function: closeAlert => {
+										this.generated = false;
+										closeAlert();
+									},
+								},
+								{
+									title: "Close",
+								},
+							]});
+							this.fair = false;
+						} else {
+							this.fair = true;
 						}
 					}
 
 					if (this.tiles[tile].flagged || this.tiles[tile].revealed) {
 						return;
 					}
-					this.revealTile([tile], updatedTiles);
+					this.revealTiles([tile]);
 
-					if (this.tiles[tile].unsafe) {
+					if (this.bombs.has(tile)) {
 						let shouldContinue = false;
-						await showMessage({ msg: "You were eliminated from the match!", buttons: [
+						await showMessage({ msg: "You lost!", buttons: [
 							{
 								title: "Continue",
 								function: closeAlert => {
@@ -674,134 +642,88 @@ ${file} @ ${line}`
 							{
 								title: "Close",
 							}
-						]});
+						].slice(Number(this.fair), 2) });
 						if (!shouldContinue) {
-							this.revealAllTiles(updatedTiles);
+							this.revealAllTiles();
 							didWin(0);
 							return;
 						}
-						this.eliminatedFromMatch = true;
+						this.eliminated = true;
 					}
 
-					let revealBordering = this.tiles[tile].bordering != 0 ? [] : [tile], current = null;
-					while (typeof (current = revealBordering.pop()) == "number") {
-						if (!this.tiles[current].unsafe && this.tiles[current].bordering == 0) {
-							revealBordering.push(...this.revealTile(
-								this.surroundingTiles(current),
-								updatedTiles
+					let revealBordering = [];
+					if (this.nearbyBombs(tile) == 0) {
+						revealBordering.push(tile);
+					}
+					while (revealBordering.length) {
+						let current = revealBordering.shift();
+						if (!this.bombs.has(current) && this.nearbyBombs(current) == 0) {
+							revealBordering.push(...this.revealTiles(
+								this.surroundingTiles(current)
 							));
 						}
 					}
 
-					if (this.revealedSafeTileCount == this.tiles.length - this.unsafeCount) {
-						this.revealAllTiles(updatedTiles);
-						if (this.eliminatedFromMatch) {
+					if (this.revealedSafeTileCount == this.tiles.length - this.bombCount) {
+						this.revealAllTiles();
+						if (this.eliminated) {
 							showMessage({ msg: "You completed the board!", });
 							didWin(0);
 						} else {
-							showMessage({ msg: "You won the match!", });
+							showMessage({ msg: "You won!", });
 							didWin(1);
 						}
 					}
 				}
-
-				set suggestedUnsafeCount(val) {
-					this._suggestedUnsafeCount = cnfRange(Math.round(val), 0, this.width * this.height - 9);
-				}
-				get suggestedUnsafeCount() {
-					return this._suggestedUnsafeCount;
-				}
-
-				constructor({ width, height, suggestedUnsafeCount, ensureFairness }) {
-					super();
+				
+				constructor({ width, height, suggestedBombCount }) {
 					this.width = width;
 					this.height = height;
-					this.suggestedUnsafeCount = suggestedUnsafeCount;
+					this.suggestedBombCount = suggestedBombCount;
 					this.revealedSafeTileCount = 0;
-					this.ensureFairness = ensureFairness;
-				}
+					this.generated = false;
 
-				generate(tile, updatedTiles) {
-					this.generated = true;
-					this.tiles = [];
-					let arr = new Array(this.width * this.height);
+					this.tiles = new Array(this.width * this.height);
+					this.bombs = null;
 					for (let idx = this.width * this.height - 1; idx >= 0; --idx) {
 						this.tiles[idx] = {
-							bordering: 0,
-							unsafe: false,
 							revealed: false,
 							flagged: false,
-							surrounding: this.surroundingTiles(idx),
-						}
-						arr[idx] = idx;
-					}
-					let indexes = [];
-					let t = this.tilesAtEdges(tile);
-					if (t.up) {
-						if (t.left) {
-							indexes.push(tile - this.width - 1);
-						}
-						indexes.push(tile - this.width);
-						if (t.right) {
-							indexes.push(tile - this.width + 1);
 						}
 					}
-					if (t.left) {
-						indexes.push(tile - 1);
-					}
-					indexes.push(tile);
-					if (t.right) {
-						indexes.push(tile + 1);
-					}
-					if (t.down) {
-						if (t.left) {
-							indexes.push(tile + this.width - 1);
-						}
-						indexes.push(tile + this.width);
-						if (t.right) {
-							indexes.push(tile + this.width + 1);
-						}
-					}
-					for (let idx in indexes) {
-						let index = indexes[idx];
-						arr.splice(index - idx, 1);
-					}
-					let unsafeTiles = (new distinctRNG(arr))(this.suggestedUnsafeCount);
-					this.unsafeCount = unsafeTiles.length;
-					for (let unsafe of unsafeTiles) {
-						this.tiles[unsafe].unsafe = true;
-						this.tileInc(this.tiles[unsafe].surrounding, updatedTiles);
-					}
+
+					this.rand = null;
 				}
 
-				revealAllTiles(updatedTiles) {
+				generate(tile) {
+					this.generated = true;
+					let bombTiles = this.rand(this.suggestedBombCount);
+					this.bombCount = bombTiles.length;
+					this.bombs = new Set(bombTiles);
+				}
+
+				revealAllTiles() {
 					for (let idx in this.tiles) {
-						if (!this.tiles[idx].revealed) {
+						if (!this.tiles[idx].revealed || this.tiles[idx].flagged) {
 							this.tiles[idx].revealed = true;
 							this.tiles[idx].flagged = false;
-							if (updatedTiles) {
-								updatedTiles.add(idx);
-							}
 						}
 					}
 				}
 
-				revealTile(idxs, updatedTiles) {
+				revealTiles(idxs) {
 					let r = [];
 					for (let idx of idxs) {
 						if (idx >= 0 && idx < this.tiles.length) {
 							if (!this.tiles[idx].revealed) {
-								if (!this.tiles[idx].unsafe) {
+								if (!this.bombs.has(idx)) {
 									this.revealedSafeTileCount += 1;
-									if (this.tiles[idx].bordering == 0) {
+									if (this.nearbyBombs(idx) == 0) {
 										r.push(idx);
 									}
 								}
 								this.tiles[idx].revealed = true;
 								this.tiles[idx].flagged = false;
-								if (updatedTiles) {
-									updatedTiles.add(idx);
-								}
 							}
 						}
 					}
@@ -811,59 +733,91 @@ ${file} @ ${line}`
 			class Game {
 				static tileSize = 50;
 
-				setWH() {
-					let dpr = devicePixelRatio;
-					let height = this.board.height * Game.tileSize;
-					let width = this.board.width * Game.tileSize;
-					this.canvas.height = height * dpr;
-					this.canvas.width = width * dpr;
-					this.context.scale(dpr, dpr);
-					this.canvas.style.height = height + "px";
-					this.canvas.style.width = width + "px";
-
-					if (this.board.generated) {
-						this.render(Object.keys(this.board.tiles));
+				render() {
+					if (!this.destroyed) {
+						requestAnimationFrame(_ => this.render());
 					}
-				}
 
-				render(updatedTiles = this.updatedTiles) {
+					let width = Math.min(this.container.clientWidth, this.board.width * Game.tileSize);
+					let height = Math.min(this.container.clientHeight, this.board.height * Game.tileSize);
+					let dpr = Math.round(Math.max(devicePixelRatio, 1));
+					if (width != this.width || height != this.height || dpr != this.dpr) {
+						this.width = width;
+						this.height = height;
+						this.dpr = dpr;
+
+						this.canvas.width = width * dpr;
+						this.canvas.height = height * dpr;
+						this.context.scale(dpr, dpr);
+						this.canvas.style.width = width + "px";
+						this.canvas.style.height = height + "px";
+					}
+
+					this.scrollLeft = Math.max(Math.min(this.scrollLeft, (this.board.width * Game.tileSize) - this.container.clientWidth), 0);
+					this.scrollTop = Math.max(Math.min(this.scrollTop, (this.board.height * Game.tileSize) - this.container.clientHeight), 0);
+
+					let scrollLeft = Math.round(this.scrollLeft);
+					let scrollTop = Math.round(this.scrollTop);
+
 					if (!this.board.generated) {
 						return;
 					}
+					
+					let rX = Math.min(this.container.clientWidth, this.board.width * Game.tileSize);
+					let rY = Math.min(this.container.clientHeight, this.board.height * Game.tileSize);
+
 					let { saveCtx, loadCtx } = new ctxSaver(this.context);
 					saveCtx("fillStyle", "textBaseline", "textAlign", "font");
 					this.context.textBaseline = "middle";
 					this.context.textAlign = "center";
 					this.context.font = Math.floor(Game.tileSize / 2) + "px monospace";
-					for (let tile of updatedTiles) {
-						let y = Math.floor(tile / this.board.width) * Game.tileSize;
-						let x = (tile % this.board.width) * Game.tileSize;
-						if (
-							(x + Game.tileSize < this.container.scrollLeft || x >= this.container.scrollLeft + this.container.clientWidth) ||
-							(y + Game.tileSize < this.container.scrollTop || y >= this.container.scrollTop + this.container.clientHeight)
-						) {
-							continue;
+
+					let x = scrollLeft;
+					x -= (x % Game.tileSize);
+
+					let _y = scrollTop;
+					_y -= (_y % Game.tileSize);
+					
+					while (x < rX + scrollLeft) {
+						let y = _y;
+						while (y < rY + scrollTop) {
+							let boardY = Math.floor(y / Game.tileSize);
+							let boardX = Math.floor(x / Game.tileSize);
+							let tile = (boardY * this.board.width) + boardX;
+
+							let renderX = x - scrollLeft;
+							let renderY = y - scrollTop;
+							
+							let tileData = this.board.tiles[tile];
+							this.context.fillStyle = "#000000";
+							if (tileData.flagged) {
+								this.context.fillStyle = "#0000FF";
+							} else if (!tileData.revealed) {
+								this.context.fillStyle = "#999999";
+							} else if (this.board.bombs.has(tile)) {
+								this.context.fillStyle = "#FF0000";
+							}
+							this.context.fillRect(renderX, renderY, Game.tileSize, Game.tileSize);
+							if (this.context.fillStyle == "#000000") {
+								this.context.fillStyle = "#FFFFFF";
+								let bordering = this.board.nearbyBombs(tile);
+								if (bordering != 0) {
+									this.context.fillText(bordering, renderX + Math.ceil(Game.tileSize / 2), renderY + Math.floor(Game.tileSize / 2) + 4);
+								}
+							}
+							y += Game.tileSize;
 						}
-						if (updatedTiles instanceof Set) {
-							updatedTiles.delete(tile);
-						}
-						let tileData = this.board.tiles[tile];
-						this.context.fillStyle = "#000000";
-						if (tileData.flagged) {
-							this.context.fillStyle = "#0000FF";
-						} else if (!tileData.revealed) {
-							this.context.fillStyle = "#999999";
-						} else if (tileData.unsafe) {
-							this.context.fillStyle = "#FF0000";
-						}
-						this.context.fillRect(x, y, Game.tileSize, Game.tileSize);
-						if (this.context.fillStyle != "#000000") {
-							continue;
-						}
-						this.context.fillStyle = "#FFFFFF";
-						if (tileData.bordering != 0) {
-							this.context.fillText(tileData.bordering, x + Math.ceil(Game.tileSize / 2), y + Math.floor(Game.tileSize / 2) + 4);
-						}
+						x += Game.tileSize;
+					}
+
+					if (this.touchInfo && !this.touchInfo.move) {
+						this.context.beginPath();
+						let { x, y } = this.canvasCoordinates(this.touchInfo.x, this.touchInfo.y);
+						x -= this.scrollLeft;
+						y -= this.scrollTop;
+						this.context.arc(x, y, 25, 0, 2 * Math.PI, false);
+						this.context.fillStyle = "#FFFFFF39";
+						this.context.fill();
 					}
 					loadCtx();
 				}
@@ -879,10 +833,22 @@ ${file} @ ${line}`
 					for (let [target, name, func] of this.events) {
 						target.removeEventListener(name, func);
 					}
+
+					this.destroyed = true;
 				}
 				constructor(container, canvas, gameSettings = { }, board) {
-					this.updatedTiles = new Set;
+					this.destroyed = false;
+
+					this.width = null;
+					this.height = null;
+					this.dpr = null;
+
+					this.mousedownInfo = this.touchInfo = null;
+
 					this.events = [];
+
+					this.scrollLeft = 0;
+					this.scrollTop = 0;
 
 					this.container = container;
 					this.canvas = canvas;
@@ -899,128 +865,182 @@ ${file} @ ${line}`
 
 					this.addEventListeners(canvas,
 						["contextmenu", event => event.preventDefault()],
-						["touchstart", event => this.mousedown(event)],
-						["touchend", event => this.mouseup(event)],
+						["touchstart", event => this.touchstart(event)],
+						["touchend", event => this.touchend(event)],
 						["touchmove", event => this.touchmove(event)],
-						["touchcancel", event => this.touchmove(event)],
+						["touchcancel", event => this.touchcancel(event)],
 						["mousedown", event => this.mousedown(event)],
-						["mouseup", event => this.mouseup(event)]
+						["mousemove", event => this.mousemove(event)],
+						["mouseup", event => this.mouseup(event)],
+
+						["wheel", event => {
+							this.scrollLeft += event.deltaX;
+							this.scrollTop += event.deltaY;
+						}]
 					);
 
-					this.addEventListeners(container, ["scroll", _ => this.render()]);
-					this.addEventListeners(window, ["resize", _ => this.render()]);
+					this.addEventListeners(window, ["resize", _ => this.touchcancel()]);
 
-					this.step();
+					this.render();
 				}
 
 				canvasCoordinates(x, y) {
-					return { x: x - this.canvas.offsetLeft + this.canvas.parentElement.scrollLeft, y: y - this.canvas.offsetTop + this.canvas.parentElement.scrollTop, };
+					let rect = this.canvas.getBoundingClientRect();
+					return { x: x - rect.left + this.scrollLeft, y: y - rect.top + this.scrollTop, };
 				}
 				tileForCoordinates(x, y) {
-					return Math.floor(y / (Number(this.canvas.style.height.replace("px", "")) / this.board.height)) * this.board.width + Math.floor(x / (Number(this.canvas.style.width.replace("px", "") / this.board.width)));
+					if (y === undefined) {
+						y = x.y;
+						x = x.x;
+					}
+					return (this.board.width * Math.floor(y / Game.tileSize)) + Math.floor(x / Game.tileSize);
 				}
-				async click(event) {
-					//event.preventDefault();
-					if (this.paused) {
-						return;
-					}
-					let { x, y } = this.canvasCoordinates(event.x, event.y);
-					let tile = this.tileForCoordinates(x, y);
-					if (event.which == this.flagMouseButton) {
-						return this.board.tiles && this.board.toggleFlag(tile, this.updatedTiles);
-					}
 
-					await this.board.handleClick(tile, this.updatedTiles, matchResult => {
-						this.step();
+				async click(tile) {
+					await this.board.handleClick(tile, matchResult => {
 						this.paused = true;
-
 						this[matchResult == 0 ? "handleLose" : "handleWin"]();
 					});
-					this.step();
 				}
+
 				mousedown(event) {
-					//event.preventDefault();
-					if (this.paused || this.mousedownInfo) {
+					event.preventDefault();
+					if (this.mousedownInfo) {
 						return;
 					}
-					this.mousedownAt = performance.now();
-					event.x ??= event.touches[0].clientX;
-					event.y ??= event.touches[0].clientY;
-					let { x, y } = this.canvasCoordinates(event.x, event.y);
-					let tile = this.tileForCoordinates(x, y);
-					this.mousedownInfo = { x: event.x, y: event.y, tile: tile, identifier: event?.touches?.[0]?.identifier ?? "mouse", };
-					if (!(this.board instanceof Board) || event.type == "mousedown") {
-						return;
-					}
-					this.darkener = setTimeout(_ => {
-						this.darkener = null;
-						this.canvas.style.filter = "brightness(75%)";
-					}, this.touchFlagDelay);
+
+					let { x, y } = event;
+					let tile = this.tileForCoordinates(this.canvasCoordinates(event.x, event.y));
+					this.mousedownInfo = {
+						x, y, tile,
+						which: event.which == 1 && !event.altKey ? 1 : 2,
+						flag: event.ctrlKey || event.metaKey || event.shiftKey,
+					};
 				}
-				mouseup(event) {
-					if (event.cancelable) {
-						event.preventDefault();
-					}
-					if (this.paused || this.mousedownInfo == null) {
+				mousemove(event) {
+					event.preventDefault();
+					if (!this.mousedownInfo) {
 						return;
 					}
-					let mousedownTile = this.mousedownInfo.tile;
-					for (let touch of event?.changedTouches ?? []) {
-						if (touch.identifier == this.mousedownInfo.identifier) {
-							event.x = touch.clientX;
-							event.y = touch.clientY;
-							break;
+					
+					if (this.mousedownInfo.which == 2) {
+						this.scrollLeft += this.mousedownInfo.x - event.x;
+						this.scrollTop += this.mousedownInfo.y - event.y;
+
+						this.mousedownInfo.x = event.x;
+						this.mousedownInfo.y = event.y;
+					}
+				}
+				async mouseup(event) {
+					event.preventDefault();
+					if (!this.mousedownInfo) {
+						return;
+					}
+					
+					if (!this.paused && this.mousedownInfo.which == 1) {
+						let tile = this.tileForCoordinates(this.canvasCoordinates(event.x, event.y));
+						if (tile == this.mousedownInfo.tile) {
+							if (this.mousedownInfo.flag) {
+								this.board.toggleFlag(tile);
+							} else {
+								await this.click(tile);
+							}
 						}
 					}
-					if (typeof event.x == "undefined") {
-						return;
-					}
+
 					this.mousedownInfo = null;
-					if (typeof this.darkener == "number") {
-						clearTimeout(this.darkener);
-						this.darkener = null;
-					}
-					this.canvas.style.filter = "";
-					let { x, y } = this.canvasCoordinates(event.x, event.y);
-					let tile = this.tileForCoordinates(x, y);
-					if (tile != mousedownTile) {
+				}
+
+				touchstart(event) {
+					event.preventDefault();
+					if (this.touchInfo) {
 						return;
 					}
-					if (performance.now() - this.mousedownAt < this.touchFlagDelay || event.type == "mouseup") {
-						this.click(event);
-					} else if (this.board instanceof Board) {
-						this.board.toggleFlag(tile, this.updatedTiles);
-						this.step();
-					}
+
+					let touch = event.touches[0];
+					let [x, y] = [touch.clientX, touch.clientY];
+					
+					let tile = this.tileForCoordinates(this.canvasCoordinates(x, y));
+					this.touchInfo = {
+						x, y, tile,
+						identifier: touch.identifier,
+						flag: this.paused ? null : setTimeout(_ => {
+							this.board.toggleFlag(tile);
+							this.touchInfo = null;
+						}, this.touchFlagDelay),
+						move: this.paused,
+						prev: { x, y, },
+					};
 				}
 				touchmove(event) {
-					if (this.paused || !this.mousedownInfo) {
+					event.preventDefault();
+					if (!this.touchInfo) {
 						return;
 					}
-					let touch = null;
-					for (let t of event.changedTouches) {
-						if (t.identifier == this.mousedownInfo.identifier) {
-							touch = t;
-							break;
-						}
-					}
+
+					let touch = Array.prototype.find.call(
+						event.changedTouches,
+						touch => touch.identifier === this.touchInfo.identifier
+					);
 					if (!touch) {
 						return;
 					}
-					let [ x, y ] = [touch.clientX, touch.clientY];
-					if (event.type == "touchcancel" || (Math.abs(x - this.mousedownInfo?.x) > 50 || Math.abs(y - this.mousedownInfo?.y) > 50)) {
-						if (typeof this.darkener == "number") {
-							clearTimeout(this.darkener);
-							this.darkener = null;
-						}
-						this.canvas.style.filter = "";
-						this.mousedownInfo = null;
+
+					let [x, y] = [touch.clientX, touch.clientY];
+					if (
+						!this.touchInfo.move &&
+						Math.abs(this.touchInfo.x - x) + Math.abs(this.touchInfo.y - y) > 25
+					) {
+						clearTimeout(this.touchInfo.flag);
+						this.touchInfo.flag = null;
+						this.touchInfo.move = true;
+						
+						let radius = Math.max(Game.tileSize / 2);
+						let angle = Math.atan2(y - this.touchInfo.y, x - this.touchInfo.x);
+						this.touchInfo.prev = {
+							x: this.touchInfo.x + radius * Math.cos(angle),
+							y: this.touchInfo.y + radius * Math.sin(angle),
+						};
+					}
+
+					if (this.touchInfo.move) {
+						this.scrollLeft += this.touchInfo.prev.x - x;
+						this.scrollTop += this.touchInfo.prev.y - y;
+
+						this.touchInfo.prev = { x, y, };
 					}
 				}
+				async touchend(event) {
+					event.preventDefault();
+					if (!this.touchInfo) {
+						return;
+					}
 
-				step() {
-					if (!this.paused) {
-						this.render();
+					let touch = Array.prototype.find.call(
+						event.changedTouches,
+						touch => touch.identifier === this.touchInfo.identifier
+					);
+					if (!touch) {
+						return;
+					}
+
+					clearTimeout(this.touchInfo.flag);
+					if (!this.touchInfo.move) {
+						if (this.paused) { alert("???"); }
+						await this.click(this.touchInfo.tile);
+					}
+					this.touchInfo = null;
+				}
+				touchcancel(event) {
+					if (!this.touchInfo) {
+						return;
+					}
+					if (!event || Array.prototype.find.call(
+						event.changedTouches,
+						touch => touch.identifier === this.touchInfo.identifier
+					)) {
+						clearTimeout(this.touchInfo.flag);
+						this.touchInfo = null;
 					}
 				}
 			}
@@ -1275,9 +1295,6 @@ ${file} @ ${line}`
 					return;
 				}
 				Game.current.touchFlagDelay = settings.numberFields.touchFlagDelay;
-				Game.current.flagMouseButton = settings.numberFields.flagMouseButton;
-
-				Game.current.setWH();
 			}
 			function closeGame() {
 				prevPage();
@@ -1308,11 +1325,10 @@ ${file} @ ${line}`
 							localStorage.setItem("menu statistics", JSON.stringify(stats));
 						},
 					},
-					new SingleplayerBoard({
+					new Board({
 						width: document.getElementById("singleplayer-board-width").valueAsNumber,
 						height: document.getElementById("singleplayer-board-height").valueAsNumber,
-						suggestedUnsafeCount: document.getElementById("singleplayer-suggested-unsafe-count").valueAsNumber,
-						ensureFairness: document.getElementById("singleplayer-ensure-fairness").checked,
+						suggestedBombCount: document.getElementById("singleplayer-suggested-bomb-count").valueAsNumber,
 					})
 				);
 				stats.singleplayer.matchesPlayed += 1;
@@ -1321,7 +1337,7 @@ ${file} @ ${line}`
 
 				setGameSettings();
 			}
-			navigator.serviceWorker.register("./sw.js", { scope: "./", }).catch(_ => showMessage({ title: "Warning", msg: "Failed to register service worker." }));
+			navigator.serviceWorker?.register("./sw.js", { scope: "./", }).catch(_ => showMessage({ title: "Warning", msg: "Failed to register service worker." }));
 			async function message(msg, handler, swr) {
 				if (!message.handlers) {
 					message.handlers = new Map;
@@ -1383,7 +1399,8 @@ ${file} @ ${line}`
 							elem.pageElem.parentElement.parentElement.style.transition = "0.32s";
 							elem.pageElem.parentElement.style.transition = "0.32s";
 							requestAnimationFrame(animToFunc);
-						});					}
+						});
+					}
 				}
 				update({ call: updateCall, });
 			}
