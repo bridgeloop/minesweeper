@@ -1,12 +1,29 @@
+<!--
+	ISC License
+
+	Copyright (c) 2023, aiden (aiden@cmp.bz)
+
+	Permission to use, copy, modify, and/or distribute this software for any
+	purpose with or without fee is hereby granted, provided that the above
+	copyright notice and this permission notice appear in all copies.
+
+	THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+	WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+	MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+	ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+	WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+	ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+	OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+-->
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-		<meta name="apple-mobile-web-app-capable" content="yes" />
-		<link rel="icon" href="about:favicon" />
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<link rel="icon" href="about:favicon">
 		<title>Minesweeper</title>
-		<script>var version = "0.0.1";</script>
+		<script>var version = "0.0.3";</script>
 		<style>
 			@keyframes alert {
 				from {
@@ -265,30 +282,23 @@
 				<div class="pad">
 					<htitle>Minesweeper</htitle>
 				</div>
-				<b class="pad" id="version-text"></b>
+				<div class="page-bar-buttons">
+					<button data-nav="settings" translate>Settings</button>
+				</div>
 			</div>
 			<div class="page-content">
 				<div class="gamemode">
 					<div>
 						<div>
-							<b class="title" translate>Matches Played</b>
-							<h2 id="singleplayer-matches-played">&nbsp;</h2>
+							<b class="title" translate>Boards Played</b>
+							<h2 id="boards-played">&nbsp;</h2>
 						</div>
 						<div>
-							<b class="title" translate>Matches Won</b>
-							<h2 id="singleplayer-matches-won">&nbsp;</h2>
+							<b class="title" translate>Boards Won</b>
+							<h2 id="boards-won">&nbsp;</h2>
 						</div>
 					</div>
-					<button class="btn width-100percent" data-nav="singleplayer-config" translate>Play</button>
-				</div>
-				<hr />
-				<div class="settings-options">
-					<div class="settings-option">
-						<button class="btn width-100percent" data-nav="settings" translate>Settings</button>
-					</div>
-					<div class="settings-option">
-						<button class="btn width-100percent" data-click-instruction="updateAlert" translate>Check for Updates</button>
-					</div>
+					<button class="btn width-100percent" data-nav="board-config" translate>Play</button>
 				</div>
 			</div>
 		</div>
@@ -318,22 +328,27 @@
 					<label for="uppercase-checkbox">
 						<div class="settings-option">
 							<b class="title" translate>Uppercase Text</b>
-							<input type="checkbox" id="uppercase-checkbox" data-name="uppercaseText" class="settings-checkbox" checked />
+							<input type="checkbox" id="uppercase-checkbox" data-name="uppercaseText" class="settings-checkbox" checked>
 						</div>
 					</label>
 				</div>
-				<hr />
+				<hr>
 				<h5 translate>Game Board</h5>
 				<div class="settings-options">
 					<div class="settings-option">
 						<b class="title" translate>Touch Flag Delay (ms)</b>
-						<input type="number" integer data-name="touchFlagDelay" min="80" max="1600" class="settings-number-field" value="500" />
+						<input type="number" integer data-name="touchFlagDelay" min="80" max="1600" class="settings-number-field" value="500">
 					</div>
+				</div>
+				<hr>
+				<div class="gamemode">
+					<div><div style="border: none"><b class="title" id="version-text"></b></div></div>
+					<button class="btn width-100percent" data-click-instruction="updateAlert" translate>Check for Updates</button>
 				</div>
 			</div>
 			</div>
 		</div>
-		<div class="page" data-page="singleplayer-config">
+		<div class="page" data-page="board-config">
 			<div class="page-bar">
 				<div class="pad">
 					<htitle translate>Play</htitle>
@@ -346,18 +361,18 @@
 				<div class="settings-options">
 					<div class="settings-option">
 						<b class="title" translate>Board Width</b>
-						<input type="number" value="10" class="settings-number-field" id="singleplayer-board-width" />
+						<input type="number" value="10" class="settings-number-field" id="board-width">
 					</div>
 					<div class="settings-option">
 						<b class="title" translate>Board Height</b>
-						<input type="number" value="10" class="settings-number-field" id="singleplayer-board-height" />
+						<input type="number" value="10" class="settings-number-field" id="board-height">
 					</div>
 					<div class="settings-option">
 						<b class="title" translate>Suggested Amount of Bombs</b>
-						<input type="number" value="12" class="settings-number-field" id="singleplayer-suggested-bomb-count" />
+						<input type="number" value="12" class="settings-number-field" id="suggested-bomb-count">
 					</div>
 					<div class="settings-option">
-						<button class="width-100percent btn" data-click-instruction="playSingleplayerGame" translate>Play</button>
+						<button class="width-100percent btn" data-click-instruction="playGame" translate>Play</button>
 					</div>
 				</div>
 			</div>
@@ -393,7 +408,7 @@
 					msg = msg.reason.message;
 					functionName = "onunhandledrejection";
 				}
-				document.documentElement.innerHTML = "<head><title>Minesweeper</title><style>html{background:black;color:lightgrey;}a{color:orange;}</style><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"  /></head><body><pre></pre><a href>Retry</a> <a href=\"force_update.html\">Force Update</a></body>";
+				document.documentElement.innerHTML = "<head><title>Minesweeper</title><style>html{background:black;color:lightgrey;}a{color:orange;}</style><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" ></head><body><pre></pre><a href>Retry</a> <a href=\"force_update.html\">Force Update</a></body>";
 				let pre = document.getElementsByTagName("pre")[0];
 				pre.style.width = "100%";
 				pre.style.whiteSpace = "pre-wrap";
@@ -897,9 +912,9 @@ ${file} @ ${line}`
 				}
 
 				async click(tile) {
-					await this.board.handleClick(tile, matchResult => {
+					await this.board.handleClick(tile, result => {
 						this.paused = true;
-						this[matchResult == 0 ? "handleLose" : "handleWin"]();
+						this[result == 0 ? "handleLose" : "handleWin"]();
 					});
 				}
 
@@ -1079,7 +1094,7 @@ ${file} @ ${line}`
 					call?.(elem, closeAlert);
 				});
 			}
-			function instructionParser(instruction, safeFunctions = ["settings.get", "settings.load", "settings.apply", "prevPage", "closeGame", "playSingleplayerGame", "alert", "location.reload", "updateStats", "update", "showMessage", "updateAlert"]) {
+			function instructionParser(instruction, safeFunctions = ["settings.get", "settings.load", "settings.apply", "prevPage", "closeGame", "playGame", "alert", "location.reload", "updateStats", "update", "showMessage", "updateAlert"]) {
 				let functions = [];
 				let components = [], component = 0;
 				let idx = 0;
@@ -1304,34 +1319,37 @@ ${file} @ ${line}`
 					delete Game.current;
 				}));
 			}
-			let stats = JSON.parse(localStorage.getItem("menu statistics") ?? `{ "singleplayer": { "matchesPlayed": 0, "matchesWon": 0 } }`);
+			let stats = JSON.parse(localStorage.getItem("menu statistics") ?? `{}`);
+			if (!stats.boardsPlayed) {
+				stats = { boardsPlayed: 0, boardsWon: 0, };
+			}
 			function updateStats() {
 				document.getElementById("version-text").innerText = `Version ${version}`;
-				document.getElementById("singleplayer-matches-played").innerText = stats.singleplayer.matchesPlayed;
-				document.getElementById("singleplayer-matches-won").innerText = stats.singleplayer.matchesWon;
+				document.getElementById("boards-played").innerText = stats.boardsPlayed;
+				document.getElementById("boards-won").innerText = stats.boardsWon;
 			}
 			for (let btn of document.querySelectorAll("[data-nav]")) (btn => {
 				btn.addEventListener("click", _ => showPage(btn.dataset.nav));
 			})(btn);
 			showPage("menu");
 
-			function playSingleplayerGame() {
+			function playGame() {
 				Game.current = new Game(
 					document.getElementById("game-container"),
 					canvas,
 					{
 						handleWin: _ => {
-							stats.singleplayer.matchesWon += 1;
+							stats.boardsWon += 1;
 							localStorage.setItem("menu statistics", JSON.stringify(stats));
 						},
 					},
 					new Board({
-						width: document.getElementById("singleplayer-board-width").valueAsNumber,
-						height: document.getElementById("singleplayer-board-height").valueAsNumber,
-						suggestedBombCount: document.getElementById("singleplayer-suggested-bomb-count").valueAsNumber,
+						width: document.getElementById("board-width").valueAsNumber,
+						height: document.getElementById("board-height").valueAsNumber,
+						suggestedBombCount: document.getElementById("suggested-bomb-count").valueAsNumber,
 					})
 				);
-				stats.singleplayer.matchesPlayed += 1;
+				stats.boardsPlayed += 1;
 				localStorage.setItem("menu statistics", JSON.stringify(stats));
 				showPage("game");
 
