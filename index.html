@@ -43,21 +43,23 @@
 				border-radius: 0.4rem;
 				background: var(--settings-option-background);
 			}
-			.gamemode > div {
+			.gamemode > div:nth-child(1) {
 				display: flex;
 			}
-			.gamemode > div > div:nth-child(1) {
+			.gamemode > div:nth-child(1) > div:nth-child(1) {
 				flex: 1;
 				padding: 0.8rem;
 				border-right: solid 1px white;
 			}
-			.gamemode > div > div:nth-child(2) {
+			.gamemode > div:nth-child(1) > div:nth-child(2) {
 				flex: 1;
 				padding: 0.8rem;
 				border-left: solid 1px white;
 			}
+			.gamemode > div {
+				border-bottom: solid 2px white;
+			}
 			.gamemode > button {
-				border-top: solid 2px white;
 				border-radius: 0 0 0.4rem 0.4rem;
 			}
 			@font-face {
@@ -298,7 +300,21 @@
 							<h2 id="boards-won">&nbsp;</h2>
 						</div>
 					</div>
-					<button class="btn width-100percent" data-nav="board-config" translate>Play</button>
+					<div class="settings-options" style="border-radius: 0">
+						<div class="settings-option">
+							<b class="title" translate>Board Width</b>
+							<input type="number" value="10" class="settings-number-field" id="board-width">
+						</div>
+						<div class="settings-option">
+							<b class="title" translate>Board Height</b>
+							<input type="number" value="10" class="settings-number-field" id="board-height">
+						</div>
+						<div class="settings-option">
+							<b class="title" translate>Suggested Amount of Bombs</b>
+							<input type="number" value="12" class="settings-number-field" id="suggested-bomb-count">
+						</div>
+					</div>
+					<button class="btn width-100percent" data-click-instruction="playGame" translate>Play</button>
 				</div>
 			</div>
 		</div>
@@ -346,35 +362,6 @@
 					<button class="btn width-100percent" data-click-instruction="updateAlert" translate>Check for Updates</button>
 				</div>
 			</div>
-			</div>
-		</div>
-		<div class="page" data-page="board-config">
-			<div class="page-bar">
-				<div class="pad">
-					<htitle translate>Play</htitle>
-				</div>
-				<div class="page-bar-buttons">
-					<button data-nav="menu" translate>Close</button>
-				</div>
-			</div>
-			<div class="page-content">
-				<div class="settings-options">
-					<div class="settings-option">
-						<b class="title" translate>Board Width</b>
-						<input type="number" value="10" class="settings-number-field" id="board-width">
-					</div>
-					<div class="settings-option">
-						<b class="title" translate>Board Height</b>
-						<input type="number" value="10" class="settings-number-field" id="board-height">
-					</div>
-					<div class="settings-option">
-						<b class="title" translate>Suggested Amount of Bombs</b>
-						<input type="number" value="12" class="settings-number-field" id="suggested-bomb-count">
-					</div>
-					<div class="settings-option">
-						<button class="width-100percent btn" data-click-instruction="playGame" translate>Play</button>
-					</div>
-				</div>
 			</div>
 		</div>
 		<div class="alert" id="alert-prototype"><div><div><div class="page"><div class="page-bar"><div class="pad"><htitle></htitle></div><div class="page-bar-buttons"></div></div><div class="page-content"></div></div></div></div></div>
