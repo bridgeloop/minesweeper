@@ -23,7 +23,7 @@
 		<meta name="apple-mobile-web-app-capable" content="yes">
 		<link rel="icon" href="about:favicon">
 		<title>Minesweeper</title>
-		<script>var version = "0.0.3";</script>
+		<script>var version = "0.0.4";</script>
 		<style>
 			@keyframes alert {
 				from {
@@ -876,6 +876,7 @@ ${file} @ ${line}`
 						["mouseup", event => this.mouseup(event)],
 
 						["wheel", event => {
+							event.preventDefault();
 							this.scrollLeft += event.deltaX;
 							this.scrollTop += event.deltaY;
 						}]
